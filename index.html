@@ -5,8 +5,70 @@
 </head>
 <body>
   <h1>The Plumbob Diary 🌳</h1>
-  <p>Your Sims archive is loading...</p>
 
+  <div id="auth-section">
+    <h2>Login / Sign Up</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="signup">Sign Up</button>
+    <button id="login">Login</button>
+  </div>
+
+  <div id="user-section" style="display:none;">
+    <h2>Welcome!</h2>
+    <button id="logout">Logout</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } 
+    from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBKKLstrcIXbsQuwXVCGK6o6U26zd3BBGk",
+      authDomain: "the-plumbob-diary.firebaseapp.com",
+      projectId: "the-plumbob-diary",
+      storageBucket: "the-plumbob-diary.firebasestorage.app",
+      messagingSenderId: "685985852500",
+      appId: "1:685985852500:web:64adfeb7012a65577491c1"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const authSection = document.getElementById("auth-section");
+    const userSection = document.getElementById("user-section");
+
+    document.getElementById("signup").onclick = () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      createUserWithEmailAndPassword(auth, email, password)
+        .catch(error => alert(error.message));
+    };
+
+    document.getElementById("login").onclick = () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      signInWithEmailAndPassword(auth, email, password)
+        .catch(error => alert(error.message));
+    };
+
+    document.getElementById("logout").onclick = () => {
+      signOut(auth);
+    };
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        authSection.style.display = "none";
+        userSection.style.display = "block";
+      } else {
+        authSection.style.display = "block";
+        userSection.style.display = "none";
+      }
+    });
+  </script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
     import { getAuth } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
