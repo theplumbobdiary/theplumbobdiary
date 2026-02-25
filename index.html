@@ -138,22 +138,88 @@
     };
 
     // LOAD SAVES
-  async function loadSaves() {
+async function loadSaves() {
   savesList.innerHTML = "";
   const user = auth.currentUser;
 
-  const querySnapshot = await getDocs(collection(db, "users", user.uid, "saves"));
+  if (!user) return;
+
+  // Get all saves for this user
+  const savesCollection = collection(db, "users", user.uid, "saves");
+  const querySnapshot = await getDocs(savesCollection);
+
   querySnapshot.forEach((docSnap) => {
     const save = docSnap.data();
+    const saveId = docSnap.id;
 
+    // Create a clickable div
     const div = document.createElement("div");
     div.className = "save-item";
     div.textContent = save.name;
 
-    div.onclick = () => openSave(docSnap.id, save.name);
+    // Make it clickable
+    div.style.cursor = "pointer";
+    div.addEventListener("click", () => openSave(saveId, save.name));
 
     savesList.appendChild(div);
   });
+}
+
+// Function to open the save dashboard
+function openSave(saveId, saveName) {
+  // Clear the user section and show save dashboard
+  userSection.innerHTML = `
+    <h2>${saveName}</h2>
+    <p>Save ID: ${saveId}</p>
+
+    <h3>Select Packs</h3>
+    <div id="packs-list"></div>
+
+    <button id="back-btn">Back to Saves</button>
+  `;
+
+  // Back button
+  document.getElementById("back-btn").onclick = () => {
+    userSection.innerHTML = ""; // clear
+    authSection.style.display = "none"; // keep user section hidden
+    loadSaves(); // reload saves
+  };
+
+  loadPacks(saveId);
+}
+
+// Temporary packs example
+function loadPacks(saveId) {
+  const packsList = document.getElementById("packs-list");
+
+  const examplePacks = [
+    "Island Living - Sulani",
+    "Enchanted by Nature - Innisgreen",
+    "Snowy Escape - Mt. Komorebi"
+  ];
+
+  examplePacks.forEach((pack) => {
+    const packDiv = document.createElement("div");
+    packDiv.textContent = pack;
+    packDiv.style.cursor = "pointer";
+    packDiv.style.margin = "5px";
+    packDiv.style.padding = "5px";
+    packDiv.style.background = "#d6f5d6"; // soft plumbob-ish green
+    packDiv.style.borderRadius = "5px";
+
+    packDiv.onclick = () => openWorld(saveId, pack);
+
+    packsList.appendChild(packDiv);
+  });
+}
+
+// TEMP placeholder for world view
+function openWorld(saveId, packName) {
+  userSection.innerHTML = `
+    <h2>${packName}</h2>
+    <p>Here you will see the world map and lots.</p>
+    <button onclick="openSave('${saveId}', 'Your Save')">Back to Save</button>
+  `;
 }
 function openSave(saveId, saveName) {
   document.getElementById("user-section").innerHTML = `
