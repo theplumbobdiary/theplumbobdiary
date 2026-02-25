@@ -3,12 +3,11 @@
 <head>
   <title>The Plumbob Diary</title>
   <style>
-    body { font-family: Arial; background: #f4f4f4; text-align: center; padding: 40px; }
-    input { display:block; margin:10px auto; padding:8px; width:250px; }
-    button { padding:8px 15px; margin:5px; cursor:pointer; }
-    #user-section { margin-top:20px; }
-    .save-item { background:white; margin:10px auto; padding:10px; width:300px; border-radius:6px; cursor:pointer; }
-    .pack-item { background:#d6f5d6; margin:5px; padding:5px; border-radius:5px; cursor:pointer; width:250px; margin-left:auto; margin-right:auto; }
+    body { font-family: Arial; text-align: center; padding: 40px; background: #f4f4f4; }
+    input { display: block; margin: 10px auto; padding: 8px; width: 250px; }
+    button { padding: 8px 15px; margin: 5px; cursor: pointer; }
+    .save-item { background: white; margin: 10px auto; padding: 10px; width: 300px; border-radius: 6px; cursor: pointer; }
+    #packs-list { margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -23,16 +22,13 @@
   </div>
 
   <div id="user-section" style="display:none;">
-    <h2>Welcome ✨</h2>
     <p id="user-email"></p>
-
     <h3>Create New Save</h3>
     <input type="text" id="save-name" placeholder="Save Name">
     <button id="create-save">Create Save</button>
-
     <h3>Your Saves</h3>
     <div id="saves-list"></div>
-
+    <div id="packs-list"></div>
     <button id="logout">Logout</button>
   </div>
 
@@ -58,91 +54,72 @@
     const userSection = document.getElementById("user-section");
     const userEmailDisplay = document.getElementById("user-email");
     const savesList = document.getElementById("saves-list");
+    const packsList = document.getElementById("packs-list");
 
-    // SIGN UP
+    // Sign up
     document.getElementById("signup").onclick = () => {
       createUserWithEmailAndPassword(auth, email.value, password.value)
         .catch(e => alert(e.message));
     };
 
-    // LOGIN
+    // Login
     document.getElementById("login").onclick = () => {
       signInWithEmailAndPassword(auth, email.value, password.value)
         .catch(e => alert(e.message));
     };
 
-    // LOGOUT
+    // Logout
     document.getElementById("logout").onclick = () => signOut(auth);
 
-    // CREATE SAVE
+    // Create save
     document.getElementById("create-save").onclick = async () => {
-      if (!saveName.value) return alert("Enter save name");
-      await addDoc(collection(db, "users", auth.currentUser.uid, "saves"), { name: saveName.value });
+      const name = saveName.value;
+      if (!name) return alert("Enter a save name");
+      await addDoc(collection(db, "users", auth.currentUser.uid, "saves"), { name });
       saveName.value = "";
       loadSaves();
     };
 
-    // LOAD SAVES
+    // Load saves
     async function loadSaves() {
       savesList.innerHTML = "";
+      packsList.innerHTML = "";
       const user = auth.currentUser;
       if (!user) return;
-      const querySnapshot = await getDocs(collection(db, "users", user.uid, "saves"));
-      querySnapshot.forEach(docSnap => {
+      const snapshot = await getDocs(collection(db, "users", user.uid, "saves"));
+      snapshot.forEach(docSnap => {
         const div = document.createElement("div");
         div.className = "save-item";
         div.textContent = docSnap.data().name;
-        div.onclick = () => openSave(docSnap.id, docSnap.data().name);
+        div.onclick = () => loadPacks(docSnap.id, docSnap.data().name);
         savesList.appendChild(div);
       });
     }
 
-    function openSave(saveId, saveName) {
-      userSection.innerHTML = `
-        <h2>${saveName}</h2>
-        <button id="back-btn">Back to Saves</button>
-        <h3>Select Packs</h3>
-        <div id="packs-list"></div>
-      `;
-      document.getElementById("back-btn").onclick = () => loadSavesDashboard();
-      loadPacks(saveId);
-    }
-
-    function loadPacks(saveId) {
-      const packsList = document.getElementById("packs-list");
-      ["Island Living - Sulani","Enchanted by Nature - Innisgreen"].forEach(pack => {
+    // Load packs for a save
+    function loadPacks(saveId, saveName) {
+      packsList.innerHTML = `<h4>Packs for "${saveName}"</h4>`;
+      const examplePacks = ["Island Living - Sulani", "Enchanted by Nature - Innisgreen"];
+      examplePacks.forEach(pack => {
         const div = document.createElement("div");
-        div.className = "pack-item";
         div.textContent = pack;
-        div.onclick = () => alert("Here the world map for: " + pack);
+        div.className = "pack-item";
+        div.onclick = () => alert("World Map screen placeholder for: " + pack);
         packsList.appendChild(div);
       });
     }
 
-    function loadSavesDashboard() {
-      userSection.innerHTML = `
-        <h2>Welcome ✨</h2>
-        <p id="user-email">${auth.currentUser.email}</p>
-        <h3>Create New Save</h3>
-        <input type="text" id="save-name" placeholder="Save Name">
-        <button id="create-save">Create Save</button>
-        <h3>Your Saves</h3>
-        <div id="saves-list"></div>
-        <button id="logout">Logout</button>
-      `;
-      document.getElementById("create-save").onclick = async () => {
-        if (!saveName.value) return alert("Enter save name");
-        await addDoc(collection(db, "users", auth.currentUser.uid, "saves"), { name: saveName.value });
-        saveName.value = "";
-        loadSaves();
-      };
-      document.getElementById("logout").onclick = () => signOut(auth);
-      loadSaves();
-    }
-
+    // Monitor auth state
     onAuthStateChanged(auth, user => {
-      if (user) loadSavesDashboard();
-      else { authSection.style.display = "block"; userSection.style.display = "none"; }
+      if (user) {
+        authSection.style.display = "none";
+        userSection.style.display = "block";
+        userEmailDisplay.textContent = "Logged in as: " + user.email;
+        loadSaves();
+      } else {
+        authSection.style.display = "block";
+        userSection.style.display = "none";
+      }
     });
   </script>
 </body>
