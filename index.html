@@ -26,12 +26,22 @@
     #user-section {
       margin-top: 20px;
     }
+
+    .save-item {
+      background: white;
+      margin: 10px auto;
+      padding: 10px;
+      width: 300px;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 
 <body>
   <h1>The Plumbob Diary 🌳</h1>
 
+  <!-- AUTH SECTION -->
   <div id="auth-section">
     <h2>Login / Sign Up</h2>
     <input type="email" id="email" placeholder="Email">
@@ -40,9 +50,18 @@
     <button id="login">Login</button>
   </div>
 
+  <!-- USER DASHBOARD -->
   <div id="user-section" style="display:none;">
-    <h2>Welcome to your archive ✨</h2>
+    <h2>Welcome ✨</h2>
     <p id="user-email"></p>
+
+    <h3>Create New Save</h3>
+    <input type="text" id="save-name" placeholder="Save Name">
+    <button id="create-save">Create Save</button>
+
+    <h3>Your Saves</h3>
+    <div id="saves-list"></div>
+
     <button id="logout">Logout</button>
   </div>
 
@@ -55,7 +74,14 @@
       onAuthStateChanged, 
       signOut 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { 
+      getFirestore, 
+      doc, 
+      setDoc, 
+      collection, 
+      addDoc, 
+      getDocs 
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBKKLstrcIXbsQuwXVCGK6o6U26zd3BBGk",
@@ -73,32 +99,66 @@
     const authSection = document.getElementById("auth-section");
     const userSection = document.getElementById("user-section");
     const userEmailDisplay = document.getElementById("user-email");
+    const savesList = document.getElementById("saves-list");
 
+    // SIGN UP
     document.getElementById("signup").onclick = () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-
+      const email = email.value;
+      const password = password.value;
       createUserWithEmailAndPassword(auth, email, password)
         .catch(error => alert(error.message));
     };
 
+    // LOGIN
     document.getElementById("login").onclick = () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-
+      const email = email.value;
+      const password = password.value;
       signInWithEmailAndPassword(auth, email, password)
         .catch(error => alert(error.message));
     };
 
+    // LOGOUT
     document.getElementById("logout").onclick = () => {
       signOut(auth);
     };
 
+    // CREATE SAVE
+    document.getElementById("create-save").onclick = async () => {
+      const saveName = document.getElementById("save-name").value;
+      if (!saveName) return alert("Enter a save name");
+
+      const user = auth.currentUser;
+      await addDoc(collection(db, "users", user.uid, "saves"), {
+        name: saveName,
+        createdAt: new Date()
+      });
+
+      document.getElementById("save-name").value = "";
+      loadSaves();
+    };
+
+    // LOAD SAVES
+    async function loadSaves() {
+      savesList.innerHTML = "";
+      const user = auth.currentUser;
+
+      const querySnapshot = await getDocs(collection(db, "users", user.uid, "saves"));
+      querySnapshot.forEach((doc) => {
+        const save = doc.data();
+        const div = document.createElement("div");
+        div.className = "save-item";
+        div.textContent = save.name;
+        savesList.appendChild(div);
+      });
+    }
+
+    // AUTH STATE
     onAuthStateChanged(auth, user => {
       if (user) {
         authSection.style.display = "none";
         userSection.style.display = "block";
         userEmailDisplay.textContent = "Logged in as: " + user.email;
+        loadSaves();
       } else {
         authSection.style.display = "block";
         userSection.style.display = "none";
