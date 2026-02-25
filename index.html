@@ -138,20 +138,30 @@
     };
 
     // LOAD SAVES
-    async function loadSaves() {
-      savesList.innerHTML = "";
-      const user = auth.currentUser;
+  async function loadSaves() {
+  savesList.innerHTML = "";
+  const user = auth.currentUser;
 
-      const querySnapshot = await getDocs(collection(db, "users", user.uid, "saves"));
-      querySnapshot.forEach((doc) => {
-        const save = doc.data();
-        const div = document.createElement("div");
-        div.className = "save-item";
-        div.textContent = save.name;
-        savesList.appendChild(div);
-      });
-    }
+  const querySnapshot = await getDocs(collection(db, "users", user.uid, "saves"));
+  querySnapshot.forEach((docSnap) => {
+    const save = docSnap.data();
 
+    const div = document.createElement("div");
+    div.className = "save-item";
+    div.textContent = save.name;
+
+    div.onclick = () => openSave(docSnap.id, save.name);
+
+    savesList.appendChild(div);
+  });
+}
+function openSave(saveId, saveName) {
+  document.getElementById("user-section").innerHTML = `
+    <h2>${saveName}</h2>
+    <p>Save ID: ${saveId}</p>
+    <button onclick="location.reload()">Back</button>
+  `;
+}
     // AUTH STATE
     onAuthStateChanged(auth, user => {
       if (user) {
