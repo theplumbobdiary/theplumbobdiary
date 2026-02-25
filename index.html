@@ -3,45 +3,17 @@
 <head>
   <title>The Plumbob Diary</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      text-align: center;
-      padding: 40px;
-    }
-
-    input {
-      display: block;
-      margin: 10px auto;
-      padding: 8px;
-      width: 250px;
-    }
-
-    button {
-      padding: 8px 15px;
-      margin: 5px;
-      cursor: pointer;
-    }
-
-    #user-section {
-      margin-top: 20px;
-    }
-
-    .save-item {
-      background: white;
-      margin: 10px auto;
-      padding: 10px;
-      width: 300px;
-      border-radius: 6px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
+    body { font-family: Arial; background: #f4f4f4; text-align: center; padding: 40px; }
+    input { display:block; margin:10px auto; padding:8px; width:250px; }
+    button { padding:8px 15px; margin:5px; cursor:pointer; }
+    #user-section { margin-top:20px; }
+    .save-item { background:white; margin:10px auto; padding:10px; width:300px; border-radius:6px; cursor:pointer; }
+    .pack-item { background:#d6f5d6; margin:5px; padding:5px; border-radius:5px; cursor:pointer; width:250px; margin-left:auto; margin-right:auto; }
   </style>
 </head>
-
 <body>
   <h1>The Plumbob Diary 🌳</h1>
 
-  <!-- AUTH SECTION -->
   <div id="auth-section">
     <h2>Login / Sign Up</h2>
     <input type="email" id="email" placeholder="Email">
@@ -50,7 +22,6 @@
     <button id="login">Login</button>
   </div>
 
-  <!-- USER DASHBOARD -->
   <div id="user-section" style="display:none;">
     <h2>Welcome ✨</h2>
     <p id="user-email"></p>
@@ -67,21 +38,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-    import { 
-      getAuth, 
-      createUserWithEmailAndPassword, 
-      signInWithEmailAndPassword, 
-      onAuthStateChanged, 
-      signOut 
-    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
-    import { 
-      getFirestore, 
-      doc, 
-      setDoc, 
-      collection, 
-      addDoc, 
-      getDocs 
-    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBKKLstrcIXbsQuwXVCGK6o6U26zd3BBGk",
@@ -103,142 +61,88 @@
 
     // SIGN UP
     document.getElementById("signup").onclick = () => {
-      const email = email.value;
-      const password = password.value;
-      createUserWithEmailAndPassword(auth, email, password)
-        .catch(error => alert(error.message));
+      createUserWithEmailAndPassword(auth, email.value, password.value)
+        .catch(e => alert(e.message));
     };
 
     // LOGIN
     document.getElementById("login").onclick = () => {
-      const email = email.value;
-      const password = password.value;
-      signInWithEmailAndPassword(auth, email, password)
-        .catch(error => alert(error.message));
+      signInWithEmailAndPassword(auth, email.value, password.value)
+        .catch(e => alert(e.message));
     };
 
     // LOGOUT
-    document.getElementById("logout").onclick = () => {
-      signOut(auth);
-    };
+    document.getElementById("logout").onclick = () => signOut(auth);
 
     // CREATE SAVE
     document.getElementById("create-save").onclick = async () => {
-      const saveName = document.getElementById("save-name").value;
-      if (!saveName) return alert("Enter a save name");
-
-      const user = auth.currentUser;
-      await addDoc(collection(db, "users", user.uid, "saves"), {
-        name: saveName,
-        createdAt: new Date()
-      });
-
-      document.getElementById("save-name").value = "";
+      if (!saveName.value) return alert("Enter save name");
+      await addDoc(collection(db, "users", auth.currentUser.uid, "saves"), { name: saveName.value });
+      saveName.value = "";
       loadSaves();
     };
 
     // LOAD SAVES
-async function loadSaves() {
-  savesList.innerHTML = "";
-  const user = auth.currentUser;
+    async function loadSaves() {
+      savesList.innerHTML = "";
+      const user = auth.currentUser;
+      if (!user) return;
+      const querySnapshot = await getDocs(collection(db, "users", user.uid, "saves"));
+      querySnapshot.forEach(docSnap => {
+        const div = document.createElement("div");
+        div.className = "save-item";
+        div.textContent = docSnap.data().name;
+        div.onclick = () => openSave(docSnap.id, docSnap.data().name);
+        savesList.appendChild(div);
+      });
+    }
 
-  if (!user) return;
+    function openSave(saveId, saveName) {
+      userSection.innerHTML = `
+        <h2>${saveName}</h2>
+        <button id="back-btn">Back to Saves</button>
+        <h3>Select Packs</h3>
+        <div id="packs-list"></div>
+      `;
+      document.getElementById("back-btn").onclick = () => loadSavesDashboard();
+      loadPacks(saveId);
+    }
 
-  // Get all saves for this user
-  const savesCollection = collection(db, "users", user.uid, "saves");
-  const querySnapshot = await getDocs(savesCollection);
+    function loadPacks(saveId) {
+      const packsList = document.getElementById("packs-list");
+      ["Island Living - Sulani","Enchanted by Nature - Innisgreen"].forEach(pack => {
+        const div = document.createElement("div");
+        div.className = "pack-item";
+        div.textContent = pack;
+        div.onclick = () => alert("Here the world map for: " + pack);
+        packsList.appendChild(div);
+      });
+    }
 
-  querySnapshot.forEach((docSnap) => {
-    const save = docSnap.data();
-    const saveId = docSnap.id;
-
-    // Create a clickable div
-    const div = document.createElement("div");
-    div.className = "save-item";
-    div.textContent = save.name;
-
-    // Make it clickable
-    div.style.cursor = "pointer";
-    div.addEventListener("click", () => openSave(saveId, save.name));
-
-    savesList.appendChild(div);
-  });
-}
-
-// Function to open the save dashboard
-function openSave(saveId, saveName) {
-  // Clear the user section and show save dashboard
-  userSection.innerHTML = `
-    <h2>${saveName}</h2>
-    <p>Save ID: ${saveId}</p>
-
-    <h3>Select Packs</h3>
-    <div id="packs-list"></div>
-
-    <button id="back-btn">Back to Saves</button>
-  `;
-
-  // Back button
-  document.getElementById("back-btn").onclick = () => {
-    userSection.innerHTML = ""; // clear
-    authSection.style.display = "none"; // keep user section hidden
-    loadSaves(); // reload saves
-  };
-
-  loadPacks(saveId);
-}
-
-// Temporary packs example
-function loadPacks(saveId) {
-  const packsList = document.getElementById("packs-list");
-
-  const examplePacks = [
-    "Island Living - Sulani",
-    "Enchanted by Nature - Innisgreen",
-    "Snowy Escape - Mt. Komorebi"
-  ];
-
-  examplePacks.forEach((pack) => {
-    const packDiv = document.createElement("div");
-    packDiv.textContent = pack;
-    packDiv.style.cursor = "pointer";
-    packDiv.style.margin = "5px";
-    packDiv.style.padding = "5px";
-    packDiv.style.background = "#d6f5d6"; // soft plumbob-ish green
-    packDiv.style.borderRadius = "5px";
-
-    packDiv.onclick = () => openWorld(saveId, pack);
-
-    packsList.appendChild(packDiv);
-  });
-}
-
-// TEMP placeholder for world view
-function openWorld(saveId, packName) {
-  userSection.innerHTML = `
-    <h2>${packName}</h2>
-    <p>Here you will see the world map and lots.</p>
-    <button onclick="openSave('${saveId}', 'Your Save')">Back to Save</button>
-  `;
-}
-function openSave(saveId, saveName) {
-  document.getElementById("user-section").innerHTML = `
-    <h2>${saveName}</h2>
-    <p>Save ID: ${saveId}</p>
-    <button onclick="location.reload()">Back</button>
-  `;
-}
-    // AUTH STATE
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        authSection.style.display = "none";
-        userSection.style.display = "block";
-        userEmailDisplay.textContent = "Logged in as: " + user.email;
+    function loadSavesDashboard() {
+      userSection.innerHTML = `
+        <h2>Welcome ✨</h2>
+        <p id="user-email">${auth.currentUser.email}</p>
+        <h3>Create New Save</h3>
+        <input type="text" id="save-name" placeholder="Save Name">
+        <button id="create-save">Create Save</button>
+        <h3>Your Saves</h3>
+        <div id="saves-list"></div>
+        <button id="logout">Logout</button>
+      `;
+      document.getElementById("create-save").onclick = async () => {
+        if (!saveName.value) return alert("Enter save name");
+        await addDoc(collection(db, "users", auth.currentUser.uid, "saves"), { name: saveName.value });
+        saveName.value = "";
         loadSaves();
-      } else {
-        authSection.style.display = "block";
-        userSection.style.display = "none";
-      }
+      };
+      document.getElementById("logout").onclick = () => signOut(auth);
+      loadSaves();
+    }
+
+    onAuthStateChanged(auth, user => {
+      if (user) loadSavesDashboard();
+      else { authSection.style.display = "block"; userSection.style.display = "none"; }
     });
   </script>
 </body>
